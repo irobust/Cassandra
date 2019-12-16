@@ -1,0 +1,191 @@
+These demos assume you have a running docker environment as defined in the module one demos.txt
+
+-----
+
+Create a three node cluster using the instructions provided in module one demos.txt
+(note that you may need to wait a minute or so in between starting up each docker container)
+
+Run cqlsh with:
+
+    docker exec -it n1 cqlsh
+
+Create a keyspace by entering this CQL at the cqlsh> prompt:
+
+    create keyspace pluralsight with replication = {'class':'SimpleStrategy', 'replication_factor':3};
+
+Examine the token allocations for this keyspace by exiting cqlsh and running a new nodetool command:
+
+    docker exec -it n1 nodetool describering pluralsight
+
+Run nodetool status, supplying the name of the keyspace, and notice that each node "owns" 100% of the data:
+
+    docker exec -it n1 nodetool status pluralsight
+
+Now run cqlsh again and drop and recreate the keyspace with a different replication factor:
+
+    drop keyspace pluralsight;
+    create keyspace pluralsight with replication = {'class':'SimpleStrategy', 'replication_factor':1};
+
+Run nodetool status again and notice that now each node only "owns" about a third of the data:
+
+    docker exec -it n1 nodetool status pluralsight
+
+Run nodetool describering again and notice that each token range is only allocated one endpoint:
+
+    docker exec -it nodetool describering pluralsight
+
+Take one of the end_token values from these results and find it in the nodetool ring output:
+
+    docker exec -it n1 nodetool ring | grep [end_token]
+
+(where [end_token] is an end_token value taken from the results of nodetool describering)
+Note that the IP address is same as the end_point found in the describering output
+
+Stop and remove each of your docker containers:
+
+    docker stop n1 n2 n3; docker rm n1 n2 n3
+
+-----
+
+Create a multi-DC cluster as described in module 1, placing nodes in the following data centers and racks:
+
+    Data center DC1, rack RAC1
+    Data center DC1, rack RAC1
+    Data center DC1, rack RAC2
+    Data center DC2, rack RAC1
+
+As you start each node, check that its up by running "docker ps".
+If a node fails to fully startup, you can remove it with "docker rm [node-name]" and then start up the container again
+
+Run cqlsh with:
+
+    docker exec -it n1 cqlsh
+
+Create the pluralsight keyspace again, but this time with a different replication strategy:
+
+    create keyspace pluralsight with replication = {'class':'NetworkTopologyStrategy','DC1':2,'DC2':1}
+
+Exit cqlsh and run describering again, noting that the endpoints obey the keyspace data center parameters above
+
+    docker exec -it n1 nodetool describering pluralsight
+
+Run nodetool status and note that the one node in DC2 owns all the data, as does the one node in RAC2 of DC1:
+
+    docker exec -it n1 nodetool status pluralsight
+
+Stop and remove all four docker containers:
+
+    docker stop n1 n2 n3 n4; docker rm n1 n2 n3 n4
+
+-----
+
+Create a three node cluster using the instructions provided in module one demos.txt
+(note that you may need to wait a minute or so in between starting up each docker container)
+
+Run cqlsh with:
+
+    docker exec -it n1 cqlsh
+
+Create a keyspace and "use" it by entering this CQL at the cqlsh> prompt:
+
+    create keyspace pluralsight with replication = {'class':'SimpleStrategy', 'replication_factor':3};
+    use pluralsight;
+
+Create a simple, one column table in this keyspace:
+
+    create table courses (id varchar primary key);
+
+Check the current consistency level in cqlsh by running this command and examining the output:
+
+    consistency;
+
+Insert a row into the courses table and see it succeed at this concurrency level:
+
+    insert into courses (id) values ('cassandra-developers');
+
+Set the consistency level to "quorum" and successfully insert another row into the table:
+
+    consistency quorum;
+    insert into courses (id) values ('building-asynchronous-restful-services-jersey');
+
+Set the consistency level to "all", turn on tracing, and insert a third row:
+
+    consistency all;
+    tracing on;
+    insert into courses (id) values ('node-intro');
+
+Exit cqlsh and take one of the cassandra nodes offline by stopping the docker container:
+
+    docker stop n3
+
+Run cqlsh again, set the consistency level to "all" and try to insert another row into the courses table:
+
+    use pluralsight;
+    consistency all;
+    insert into courses (id) values ('google-charts-by-example');
+
+Set the consistency to "quorum" and try the same insert again:
+
+    consistency quorum;
+    insert into courses (id) values ('google-charts-by-example');
+
+Select one of the inserted rows back from the courses table:
+
+    select * from courses where id = 'cassandra-developers';
+
+Set the consistency level to "all" and attempt to repeat the select statement:
+
+    consistency all
+    select * from courses where id = 'cassandra-developers';
+
+ Exit cqlsh and bring the previously downed node back online:
+
+     docker start n3
+
+ Run cqlsh, set the consistency level to "all" and retry the select statement:
+
+     consistency all;
+     use pluralsight;
+     select * from courses where id = 'cassandra-developers';
+
+ Stop and remove each of your docker containers:
+
+    docker stop n1 n2 n3; docker rm n1 n2 n3
+
+-----
+
+Create a multi-DC cluster as described in module 1, with one node in DC2 and 3 nodes in DC1 (the racks don't matter)
+
+Run cqlsh and create the pluralsight keyspace with NetworkTopologyStrategy, and create the courses table as before:
+
+    create keyspace pluralsight with replication = {'class':'NetworkTopologyStrategy', 'DC1':3,'DC2':1};
+    use pluralsight;
+    create table courses (id varchar primary key);
+
+Set the consistency level to "local_one" and insert a row into the table:
+
+    consistency local_one;
+    insert into courses (id) values ('cassandra-developers');
+
+Exit cqlsh and take down the one node in DC2:
+
+    docker stop n4
+
+Run nodetool status and verify that Cassandra treats this node as "down"
+
+    docker exec - it n1 nodetool status
+
+Run cqlsh, set the consistency to "each_quorum" and try the insert again:
+
+    use pluralsight;
+    consistency each_quorum;
+    insert into courses (id) values ('node-intro');
+
+Set the consistency to "local_quorum" and successfully insert the row:
+
+    consistency local_quorum;
+    insert into courses (id) values ('node-intro');
+
+Stop and remove all four docker containers:
+
+    docker stop n1 n2 n3 n4; docker rm n1 n2 n3 n4    

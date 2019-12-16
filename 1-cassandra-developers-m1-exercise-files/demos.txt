@@ -1,0 +1,87 @@
+To setup your environment (on Mac & Windows)
+
+	(1) Download VirtualBox from https://www.virtualbox.org/
+	(2) Download Boot2Docker from http://boot2docker.io/
+
+	(on Linux it should work if you just have the docker package installed)
+
+To start up a Docker host on a Mac, run these commands:
+
+	boot2docker --memory=4096 init
+	boot2docker up
+	$(boot2docker shellinit)
+	boot2docker status
+
+	The steps for Windows will be slightly different:
+	https://docs.docker.com/installation/windows/
+
+-----
+
+To deploy a single Cassandra node to this docker host, run this command:
+
+	docker run --name=n1 -d tobert/cassandra
+
+You need the IP of this first container to pass as a parameter to subsequent
+containers, so to find the IP address, run this command:
+
+	docker inspect -f '{{ .NetworkSettings.IPAddress }}' n1
+
+To add a second node to the Cassandra cluster, run this command:
+
+	docker run --name=n2 -d tobert/cassandra -seeds IP
+
+	(where IP is the IP address you retrieved in the previous step)
+
+To add a third node to the cluster, run a command similar to the last:
+
+	docker run --name=n3 -d tobert/cassandra -seeds IP
+
+	(where again the IP is the IP address retrieved previously)
+
+At any time you can check the status of the cluster by running:
+
+	docker exec -it n1 nodetool status
+
+	(In fact, you can run it on any node:  n1, n2 or n3)
+
+You can view the virtual node token allocations by running:
+
+	docker exec -it n1 nodetool ring
+
+You can log into one of the containers and view the configuration file with:
+
+	docker exec -it n1 /bin/bash
+	vi /data/conf/cassandra.yaml
+
+When you're done, stop and remove the Cassandra containers with:
+
+	docker stop n1 n2 n3
+	docker rm n1 n2 n3
+
+-----
+
+To deploy a single Cassandra node, specifying a datacenter and rack:
+
+	docker run --name n1 -d tobert/cassandra -dc DC1 -rack RAC1
+
+To add a second node in a different rack:
+
+	docker run --name n1 -d tobert/cassandra -dc DC1 -rack RAC2 -seeds IP
+
+	(where IP is the IP address of the first node, retrieved via the same
+	 process outlined above)
+
+ To add a third node in a different datacenter:
+
+ 	docker run --name n3 -d tobert/cassandra -dc DC2 -rack RAC1 -seeds IP
+
+ 	(where again the IP is the IP address retrieved previously)
+
+To view the configuration file where the datacenter and rack info is stored:
+
+	docker exec -it n1 /bin/bash
+	vi /data/conf/cassandra-rackdc.properties
+
+You can run 'nodetool status' and 'nodetool ring' as before
+
+When you're done, stop and remove the containers as before

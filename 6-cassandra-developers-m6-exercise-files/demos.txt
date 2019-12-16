@@ -1,0 +1,107 @@
+These demos assume you have a running docker environment with a locally mounted directory, or are running local copy of Cassandra, as outlined in the module three demos.txt
+
+-----
+
+From cqlsh, run the "source" command to load the "users" table from the module 3
+
+    source '/scripts/m3/users.cql';
+
+Add a "company" column to the users table, and set it for John Doe
+
+    alter table users add company varchar;
+    update users set company = 'acme-corp' where id = 'john-doe';
+
+Try to specify "company" in a where clause, and it won't work
+
+    select * from users where company = 'acme-corp';
+
+Create an index on the company column of the users table, and re-run the select statement
+
+    create index on users(company);
+    select * from users where company = 'acme-corp';
+
+-----
+
+Add a "tags" set column to the users table, and add some entries for John Doe
+
+    alter table users add tags set<varchar>;
+    update users set tags = {'java','database','open-source'} where id = 'john-doe';
+
+Try to specify "tags" in a where clause, and it won't work
+
+    select * from users where tags contains 'java';
+
+Create an index on the tags column of the users table, and re-run the select statement
+
+    create index on users(tags);
+    select * from users where tags contains 'java';
+
+-----
+
+Load the "courses" table from the last module, and add a "tags" static set column
+
+    source '/scripts/m5/courses.cql';
+    alter table courses add tags set<varchar> static;
+
+Create a separate table to act as an "index table", organizing courses by tag
+
+    create table course_tags (
+      tag varchar,
+      course_id varchar,
+      primary key (tag, course_id)
+    );
+
+Add some tags to a course in the "courses" table, and the corresponding entries in the "course_tags" table
+
+    update courses set tags = {'developer','open-source'} where id = 'node-intro';
+    insert into course_tags (tag, course_id) values ('developer','node-intro');
+    insert into course_tags (tag, course_id) values ('open-source','node-intro');
+    select * from course_tags where tag = 'developer';
+
+Add the course name to the "course_tags" table
+
+    alter table course_tags add course_name varchar;
+    update course_tags set course_name = 'Introduction to Node.js' where tag = 'developer' and course_id = 'node-intro';
+    update course_tags set course_name = 'Introduction to Node.js' where tag = 'open-source' and course_id = 'node-intro';
+    select * from course_tags where tag = 'developer';
+
+-----
+
+Drop both the "courses" and "course_tags" tables and reload then with full course data (including tags) for 5 courses
+
+    drop table courses;
+    drop table course_tags;
+    source '/scripts/m6/courses.cql';
+    source '/scripts/m6/course_tags.cql';
+
+Look at the tags in the courses table, and in the course_tags table
+
+    select distinct id, tags from courses;
+
+    select * from course_tags where tag = 'developer';
+    select * from course_tags where tag = 'open-source';
+
+-----
+
+Examine the "courses.cql" and "courses_tags.cql" in the m6 directory for examples of unlogged and regular batches respectively.
+
+-----
+
+Attempt to insert a new user into the users table, but only if the id doesn't already exist (it does)
+
+    insert into users (id, first_name, last_name) values ('john-doe','Johnny', 'Doe') if not exists;
+
+-----
+
+Set the "reset_token" value for John Doe and see what we have
+
+    update users set reset_token = '1GRhEs1' where id = 'john-doe';
+    select id, password, reset_token from users;
+
+Try to update the password and clear the reset token, but with an incorrect reset token (and watch it fail)
+
+    update users set password = 'newpassword', reset_token = null where id = 'john-doe' if reset_token = 'wrong';
+
+Now try it again with the correct reset token (and watch it succeed)
+
+    update users set password = 'newpassword', reset_token = null where id = 'john-doe' if reset_token = '1GRhEs1';
