@@ -19,44 +19,44 @@ To start up a Docker host on a Mac, run these commands:
 
 To deploy a single Cassandra node to this docker host, run this command:
 
-	docker run --name=n1 -d tobert/cassandra
+	docker run --name=node1 -d cassandra
 
 You need the IP of this first container to pass as a parameter to subsequent
 containers, so to find the IP address, run this command:
 
-	docker inspect -f '{{ .NetworkSettings.IPAddress }}' n1
+	docker inspect -f '{{ .NetworkSettings.IPAddress }}' node1
 
 To add a second node to the Cassandra cluster, run this command:
 
-	docker run --name=n2 -d tobert/cassandra -seeds IP
+	docker run --name=node2 -d -e CASSANDRA_SEEDS=[IP] cassandra
 
 	(where IP is the IP address you retrieved in the previous step)
 
 To add a third node to the cluster, run a command similar to the last:
 
-	docker run --name=n3 -d tobert/cassandra -seeds IP
+	docker run --name=node3 -d -e CASSANDRA_SEEDS=[IP] cassandra
 
 	(where again the IP is the IP address retrieved previously)
 
 At any time you can check the status of the cluster by running:
 
-	docker exec -it n1 nodetool status
+	docker exec -it node1 nodetool status
 
-	(In fact, you can run it on any node:  n1, n2 or n3)
+	(In fact, you can run it on any node:  node1, node2 or node3)
 
 You can view the virtual node token allocations by running:
 
-	docker exec -it n1 nodetool ring
+	docker exec -it node1 nodetool ring
 
 You can log into one of the containers and view the configuration file with:
 
-	docker exec -it n1 /bin/bash
-	vi /data/conf/cassandra.yaml
+	docker exec -it node1 /bin/bash
+	vi /etc/cassandra/cassandra.yaml
 
 When you're done, stop and remove the Cassandra containers with:
 
-	docker stop n1 n2 n3
-	docker rm n1 n2 n3
+	docker stop node1 node2 node3
+	docker rm node1 node2 node3
 
 -----
 
