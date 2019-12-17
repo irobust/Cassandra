@@ -28,13 +28,13 @@ containers, so to find the IP address, run this command:
 
 To add a second node to the Cassandra cluster, run this command:
 
-	docker run --name=node2 -d -e CASSANDRA_SEEDS=[IP] cassandra
+	docker run --name=node2 -d -e CASSANDRA_SEEDS=IP cassandra
 
 	(where IP is the IP address you retrieved in the previous step)
 
 To add a third node to the cluster, run a command similar to the last:
 
-	docker run --name=node3 -d -e CASSANDRA_SEEDS=[IP] cassandra
+	docker run --name=node3 -d -e CASSANDRA_SEEDS=IP cassandra
 
 	(where again the IP is the IP address retrieved previously)
 
@@ -62,12 +62,16 @@ When you're done, stop and remove the Cassandra containers with:
 
 To deploy a single Cassandra node, specifying a datacenter and rack:
 
-	docker run --name node1 -e CASSANDRA_DC=DC1 -e CASSANDRA_RACK=RACK1 -d cassandra
+	docker run --name node1 -e CASSANDRA_DC=DC1 
+							-e CASSANDRA_RACK=RACK1 
+							-e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+							-d cassandra
 
 To add a second node in a different rack:
 
 	docker run --name node2 -d -e CASSANDRA_DC=DC1 
 							   -e CASSANDRA_RACK=RACK2 
+							   -e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
 							   -e CASSANDRA_SEEDS=IP cassandra
 
 	(where IP is the IP address of the first node, retrieved via the same
@@ -76,7 +80,8 @@ To add a second node in a different rack:
  To add a third node in a different datacenter:
 
  	docker run --name node3 -d -e CASSANDRA_DC=DC2 
-							   -e CASSANDRA_RACK=RACK1 
+							   -e CASSANDRA_RACK=RACK1
+							   -e CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
 							   -e CASSANDRA_SEEDS=IP cassandra cassandra
 
  	(where again the IP is the IP address retrieved previously)

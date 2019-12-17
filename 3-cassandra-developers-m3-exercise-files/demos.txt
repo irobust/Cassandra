@@ -17,12 +17,12 @@ You can startup a local copy of Cassandra by:
 
 If you're not running Cassandra locally, start it up in a docker container with:
 
-    docker run --name n1 -d tobert/cassandra
+    docker run --name node1 -d cassandra
 
 If you're running Cassandra locally, you'll find 'cqlsh' in the same 'bin' directory as 'cassandra' mentioned above.
 If you're running docker, run cqlsh with:
 
-    docker exec -it n1 cqlsh
+    docker exec -it node1 cqlsh
 
 Create a keyspace with:
 
